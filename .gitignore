@@ -1,0 +1,9 @@
+
+.idea/
+__pycache__/
+
+datasets/
+demo/
+logs/
+weights_imagenet/
+archive/

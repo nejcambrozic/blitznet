@@ -1,20 +1,20 @@
 #!/usr/bin/env python3
 
-from config import get_logging_config, args, train_dir
-from config import config as net_config
-
-import time
-import os
-import sys
-import socket
 import logging
 import logging.config
+import os
+import socket
 import subprocess
-
-import tensorflow as tf
-import numpy as np
+import sys
+import time
 
 import matplotlib
+import numpy as np
+import tensorflow as tf
+
+from config import config as net_config
+from config import get_logging_config, args, train_dir
+
 matplotlib.use('Agg')
 
 from vgg import VGG
@@ -34,9 +34,9 @@ log = logging.getLogger()
 def objective(location, confidence, refine_ph, classes_ph,
               pos_mask, seg_logits, seg_gt, dataset, config):
     def smooth_l1(x, y):
-        abs_diff = tf.abs(x-y)
+        abs_diff = tf.abs(x - y)
         return tf.reduce_sum(tf.where(abs_diff < 1,
-                                      0.5*abs_diff*abs_diff,
+                                      0.5 * abs_diff * abs_diff,
                                       abs_diff - 0.5),
                              1)
 
@@ -82,8 +82,9 @@ def objective(location, confidence, refine_ph, classes_ph,
         tf.summary.scalar('loss/class', class_loss)
 
         # cond is to avoid the case where no positive boxes were sampled
+        # def fn1(): return
         bbox_loss = tf.cond(tf.equal(tf.reduce_sum(tf.cast(pos_mask, tf.int32)), 0),
-                            lambda: 0.0,
+                            lambda: tf.constant(0.0),
                             lambda: tf.reduce_mean(smooth_l1(tf.boolean_mask(location, pos_mask),
                                                              tf.boolean_mask(refine_ph, pos_mask))))
         tf.summary.scalar('loss/bbox', bbox_loss)
@@ -95,7 +96,7 @@ def objective(location, confidence, refine_ph, classes_ph,
                                 tf.boolean_mask(classes_ph, neg_mask))
         hard_matches = tf.gather(hard_matches, top_k_inds)
         train_acc = ((tf.reduce_sum(tf.to_float(positive_matches)) +
-                    tf.reduce_sum(tf.to_float(hard_matches))) / normalizer)
+                      tf.reduce_sum(tf.to_float(hard_matches))) / normalizer)
         tf.summary.scalar('accuracy/train', train_acc)
 
         recognized_class = tf.argmax(confidence, 2)
@@ -104,7 +105,7 @@ def objective(location, confidence, refine_ph, classes_ph,
         fn = tf.reduce_sum(tf.to_float(tf.logical_and(tf.equal(recognized_class, 0), pos_mask)))
         precision = tp / (tp + fp)
         recall = tp / (tp + fn)
-        f1 = 2*(precision * recall)/(precision + recall)
+        f1 = 2 * (precision * recall) / (precision + recall)
         tf.summary.scalar('metrics/train/precision', precision)
         tf.summary.scalar('metrics/train/recall', recall)
         tf.summary.scalar('metrics/train/f1', f1)
@@ -120,7 +121,7 @@ def objective(location, confidence, refine_ph, classes_ph,
         the_loss += seg_loss
 
     if args.detect:
-        class_loss, bbox_loss, train_acc, number_of_positives =\
+        class_loss, bbox_loss, train_acc, number_of_positives = \
             detection_loss(location, confidence, refine_ph, classes_ph, pos_mask)
         det_loss = class_loss + bbox_loss
         the_loss += det_loss
@@ -146,7 +147,7 @@ def extract_batch(dataset, config):
         else:
             im, bbox, gt = data_provider.get(['image', 'object/bbox', 'object/label'])
             seg = tf.expand_dims(tf.zeros(tf.shape(im)[:2]), 2)
-        im = tf.to_float(im)/255
+        im = tf.to_float(im) / 255
         bbox = yxyx_to_xywh(tf.clip_by_value(bbox, 0.0, 1.0))
 
         im, bbox, gt, seg = data_augmentation(im, bbox, gt, seg, config)
@@ -178,7 +179,7 @@ def train(dataset, net, config):
         seg_logits = None
 
     loss, train_acc, mean_iou, update_mean_iou = objective(location, confidence, refine_ph,
-                                                           classes_ph,inds_ph, seg_logits,
+                                                           classes_ph, inds_ph, seg_logits,
                                                            seg_gt, dataset, config)
 
     ### setting up the learning rate ###
@@ -191,7 +192,7 @@ def train(dataset, net, config):
     if len(args.lr_decay) > 0:
         for i, step in enumerate(args.lr_decay):
             steps.append(step)
-            learning_rates.append(learning_rate*10**(-i-1))
+            learning_rates.append(learning_rate * 10 ** (-i - 1))
 
     learning_rate = tf.train.piecewise_constant(tf.to_int32(global_step),
                                                 steps, learning_rates)
@@ -207,7 +208,6 @@ def train(dataset, net, config):
         raise ValueError
 
     train_vars = tf.trainable_variables()
-    print_variables('train', train_vars)
 
     train_op = slim.learning.create_train_op(
         loss, opt,
@@ -236,7 +236,7 @@ def train(dataset, net, config):
             if args.ckpt == 0:
                 ckpt_to_restore = ckpt.model_checkpoint_path
             else:
-                ckpt_to_restore = train_dir+'/model.ckpt-%i' % args.ckpt
+                ckpt_to_restore = train_dir + '/model.ckpt-%i' % args.ckpt
             log.info("Restoring model %s..." % ckpt_to_restore)
             saver.restore(sess, ckpt_to_restore)
 
@@ -249,7 +249,7 @@ def train(dataset, net, config):
         threads = tf.train.start_queue_runners(sess=sess, coord=coord)
 
         log.info("Starting training...")
-        for step in range(starting_step, args.max_iterations+1):
+        for step in range(starting_step, args.max_iterations + 1):
             start_time = time.time()
             try:
                 train_loss, acc, iou, _, lr = sess.run([train_op, train_acc, mean_iou,
@@ -262,10 +262,11 @@ def train(dataset, net, config):
             examples_per_sec = num_examples_per_step / duration
             sec_per_batch = float(duration)
 
-            format_str = ('step %d, loss = %.2f, acc = %.2f, iou=%f, lr=%.3f (%.1f examples/sec; %.3f '
-                          'sec/batch)')
+            format_str = (
+                'step %d, loss = %.4f, acc = %.5f, iou=%f, lr=%.3f (%.1f examples/sec; %.3f '
+                'sec/batch)')
             log.info(format_str % (step, train_loss, acc, iou, -np.log10(lr),
-                                examples_per_sec, sec_per_batch))
+                                   examples_per_sec, sec_per_batch))
 
             if step % 100 == 0:
                 summary_str = sess.run(summary_op)
@@ -305,7 +306,8 @@ def main(argv=None):  # pylint: disable=unused-argument
     if args.dataset == 'voc07+12':
         dataset = get_dataset('voc07_trainval', 'voc12_train', 'voc12_val')
     if args.dataset == 'voc07+12-segfull':
-        dataset = get_dataset('voc07-trainval-segmentation', 'voc12-train-segmentation', 'voc12-val')
+        dataset = get_dataset('voc07-trainval-segmentation', 'voc12-train-segmentation',
+                              'voc12-val')
     if args.dataset == 'voc07+12-segmentation':
         dataset = get_dataset('voc07-trainval-segmentation', 'voc12-train-segmentation')
     if args.dataset == 'coco':

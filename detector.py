@@ -1,21 +1,20 @@
 #!/usr/bin/env python3
 
+import logging
 import os
-import cv2
 
+import cv2
 import numpy as np
 import tensorflow as tf
 from PIL import Image, ImageDraw, ImageFont
 from tensorflow.python.ops.metrics_impl import mean_iou
 
-import logging
-from vgg import VGG
-from voc_loader import VOCLoader
-
 from boxer import PriorBoxGrid
 from config import args, train_dir
 from paths import CKPT_ROOT, EVAL_DIR, RESULTS_DIR
 from utils import decode_bboxes, batch_iou
+from vgg import VGG
+from voc_loader import VOCLoader
 
 slim = tf.contrib.slim
 streaming_mean_iou = tf.contrib.metrics.streaming_mean_iou
@@ -104,7 +103,7 @@ class Detector(object):
             seg_gt_draw.save(self.directory + '/%s_seg_gt.png' % name, 'PNG')
 
     def restore_from_ckpt(self, ckpt):
-        ckpt_path = os.path.join(CKPT_ROOT, args.run_name, 'model.ckpt-%i000' % ckpt)
+        ckpt_path = os.path.join(CKPT_ROOT, args.run_name, 'model.ckpt-%i0' % ckpt)
         log.debug("Restoring checkpoint %s" % ckpt_path)
         self.sess.run(tf.local_variables_initializer())
         saver = tf.train.Saver(tf.global_variables())
@@ -130,9 +129,9 @@ class Detector(object):
             top_class_bboxes = tf.gather(class_bboxes, top_k_inds)
 
             final_inds = tf.image.non_max_suppression(top_class_bboxes,
-                                                        top_class_scores,
-                                                        max_output_size=args.top_k_after_nms,
-                                                        iou_threshold=args.nms_thresh)
+                                                      top_class_scores,
+                                                      max_output_size=args.top_k_after_nms,
+                                                      iou_threshold=args.nms_thresh)
 
             final_class_bboxes = tf.gather(top_class_bboxes, final_inds)
             final_scores = tf.gather(top_class_scores, final_inds)
@@ -169,7 +168,8 @@ class Detector(object):
                 easy_mask = self.seg_ph <= self.loader.num_classes
                 predictions = tf.boolean_mask(self.segmentation, easy_mask)
                 labels = tf.boolean_mask(self.seg_ph, easy_mask)
-                self.mean_iou, self.iou_update = mean_iou(predictions, labels, self.loader.num_classes)
+                self.mean_iou, self.iou_update = mean_iou(predictions, labels,
+                                                          self.loader.num_classes)
             else:
                 self.mean_iou = tf.constant(0)
                 self.iou_update = tf.constant(0)
@@ -180,7 +180,7 @@ class Detector(object):
         dets, scores, cats = [], [], []
         no_dets = True
 
-        for i in range(self.loader.num_classes-1):
+        for i in range(self.loader.num_classes - 1):
             if score_vec[i].size > 0:
                 no_dets = False
                 dets.append(detection_vec[i])
@@ -212,7 +212,7 @@ class Detector(object):
         if draw:
             self.draw(img, dets, cats, scores, name, gt_bboxes, gt_cats)
 
-        return(dets, scores, cats)
+        return (dets, scores, cats)
 
     def process_segmentation(self, outputs, img, seg_gt, name, draw):
         segmentation, iou, _ = outputs[-3:]

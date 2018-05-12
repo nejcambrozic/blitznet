@@ -1,20 +1,21 @@
 import os
-import sys
 import subprocess
-import progressbar
+import sys
+from glob import glob
+from shutil import copyfile
 
 import numpy as np
+import progressbar
 import scipy.io as sio
-
-from shutil import copyfile
-from glob import glob
 from PIL import Image
 
 from paths import DATASETS_ROOT, EVAL_DIR
 
+
 def makedir(name):
     if not os.path.exists(name):
         os.makedirs(name)
+
 
 # List of files that have extra annotations is placed in the dataset folder
 print(' - Locating the files')
@@ -51,7 +52,6 @@ for i in bar(range(len(filenames))):
     mask = Image.fromarray(mat)
     mask.putpalette(palette)
     mask.save(os.path.join(extra_annot_folder, name + '.png'), 'PNG')
-
 
 # Deleting useless files
 print(' - Deleting useless files')

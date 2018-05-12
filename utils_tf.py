@@ -6,43 +6,43 @@ from config import args
 
 def xywh_to_yxyx(xywh):
     x, y, w, h = tf.unstack(xywh, axis=1)
-    return tf.stack([y, x, y+h, x+w], axis=1)
+    return tf.stack([y, x, y + h, x + w], axis=1)
 
 
 def yxyx_to_xywh(yxyx):
     y1, x1, y2, x2 = tf.unstack(yxyx, axis=1)
-    return tf.stack([x1, y1, x2-x1, y2-y1], axis=1)
+    return tf.stack([x1, y1, x2 - x1, y2 - y1], axis=1)
 
 
 def photometric_distortions(image, color_ordering, params, scope=None):
     with tf.name_scope(scope, 'distort_color', [image]):
         if color_ordering == 0:
             image = tf.image.random_brightness(image, max_delta=params['brightness_delta'])
-            image = tf.image.random_saturation(image, lower=1-params['saturation_delta'],
-                                               upper=1+params['saturation_delta'])
+            image = tf.image.random_saturation(image, lower=1 - params['saturation_delta'],
+                                               upper=1 + params['saturation_delta'])
             image = tf.image.random_hue(image, max_delta=params['hue_delta'])
-            image = tf.image.random_contrast(image, lower=1-params['contrast_delta'],
-                                             upper=1+params['contrast_delta'])
+            image = tf.image.random_contrast(image, lower=1 - params['contrast_delta'],
+                                             upper=1 + params['contrast_delta'])
         elif color_ordering == 1:
-            image = tf.image.random_saturation(image, lower=1-params['saturation_delta'],
-                                               upper=1+params['saturation_delta'])
+            image = tf.image.random_saturation(image, lower=1 - params['saturation_delta'],
+                                               upper=1 + params['saturation_delta'])
             image = tf.image.random_brightness(image, max_delta=params['brightness_delta'])
-            image = tf.image.random_contrast(image, lower=1-params['contrast_delta'],
-                                             upper=1+params['contrast_delta'])
+            image = tf.image.random_contrast(image, lower=1 - params['contrast_delta'],
+                                             upper=1 + params['contrast_delta'])
             image = tf.image.random_hue(image, max_delta=params['hue_delta'])
         elif color_ordering == 2:
-            image = tf.image.random_contrast(image, lower=1-params['contrast_delta'],
-                                             upper=1+params['contrast_delta'])
+            image = tf.image.random_contrast(image, lower=1 - params['contrast_delta'],
+                                             upper=1 + params['contrast_delta'])
             image = tf.image.random_hue(image, max_delta=params['hue_delta'])
             image = tf.image.random_brightness(image, max_delta=params['brightness_delta'])
-            image = tf.image.random_saturation(image, lower=1-params['saturation_delta'],
-                                               upper=1+params['saturation_delta'])
+            image = tf.image.random_saturation(image, lower=1 - params['saturation_delta'],
+                                               upper=1 + params['saturation_delta'])
         elif color_ordering == 3:
             image = tf.image.random_hue(image, max_delta=params['hue_delta'])
-            image = tf.image.random_saturation(image, lower=1-params['saturation_delta'],
-                                               upper=1+params['saturation_delta'])
-            image = tf.image.random_contrast(image, lower=1-params['contrast_delta'],
-                                             upper=1+params['contrast_delta'])
+            image = tf.image.random_saturation(image, lower=1 - params['saturation_delta'],
+                                               upper=1 + params['saturation_delta'])
+            image = tf.image.random_contrast(image, lower=1 - params['contrast_delta'],
+                                             upper=1 + params['contrast_delta'])
             image = tf.image.random_brightness(image, max_delta=params['brightness_delta'])
         else:
             raise ValueError('color_ordering must be in [0, 3]')
@@ -62,7 +62,7 @@ def mirror_distortions(image, rois, params):
 def zoomout(image, gt_bboxes, params):
     X_out = tf.random_uniform([], 1.05, params['X_out'])
     h, w, _ = tf.unstack(tf.to_float(tf.shape(image)))
-    zoomout_color = params['zoomout_color']+[0]
+    zoomout_color = params['zoomout_color'] + [0]
 
     bg_color = tf.constant(zoomout_color, dtype=tf.float32)
     x_shift = tf.random_uniform([], 0, (X_out - 1) * w)
@@ -76,9 +76,9 @@ def zoomout(image, gt_bboxes, params):
     image += bg_color
 
     gt_x, gt_y, gt_w, gt_h = tf.unstack(gt_bboxes, axis=1)
-    gt_bboxes = tf.stack([gt_x + x_shift/w,
-                          gt_y + y_shift/h,
-                          gt_w, gt_h], axis=1)/X_out
+    gt_bboxes = tf.stack([gt_x + x_shift / w,
+                          gt_y + y_shift / h,
+                          gt_w, gt_h], axis=1) / X_out
     return image, gt_bboxes
 
 
@@ -91,7 +91,7 @@ def scale_distortions(image, gt_bboxes, gt_cats, params):
     n_channels = image.shape[-1]
 
     def tf_random_choice(slices, bbox):
-        sample = tf.multinomial(tf.log([[10.]*len(slices)]), 1)
+        sample = tf.multinomial(tf.log([[10.] * len(slices)]), 1)
         slices = tf.convert_to_tensor(slices)
         bbox = tf.convert_to_tensor(bbox)
         bbox_begin, bbox_size = tf.unstack(slices[tf.cast(sample[0][0],
@@ -121,21 +121,22 @@ def scale_distortions(image, gt_bboxes, gt_cats, params):
 
     def check(center, mini, maxi):
         return tf.logical_and((center >= mini), (center <= maxi))
+
     gt_centers = gt_bboxes[:, :2] + gt_bboxes[:, 2:] / 2
     mask = tf.logical_and(check(gt_centers[:, 0], x1, x2),
                           check(gt_centers[:, 1], y1, y2))
     gt_bboxes = tf.boolean_mask(gt_bboxes, mask)
     gt_cats = tf.boolean_mask(gt_cats, mask)
-    w = tf.to_float(x2-x1)
-    h = tf.to_float(y2-y1)
+    w = tf.to_float(x2 - x1)
+    h = tf.to_float(y2 - y1)
 
     gt_x, gt_y, gt_w, gt_h = tf.unstack(gt_bboxes, axis=1)
     gt_x2 = gt_x + gt_w
     gt_y2 = gt_y + gt_h
-    gt_x1_clip = tf.clip_by_value(gt_x - x1, 0, w)/w
-    gt_x2_clip = tf.clip_by_value(gt_x2 - x1, 0, w)/w
-    gt_y1_clip = tf.clip_by_value(gt_y - y1, 0, h)/h
-    gt_y2_clip = tf.clip_by_value(gt_y2 - y1, 0, h)/h
+    gt_x1_clip = tf.clip_by_value(gt_x - x1, 0, w) / w
+    gt_x2_clip = tf.clip_by_value(gt_x2 - x1, 0, w) / w
+    gt_y1_clip = tf.clip_by_value(gt_y - y1, 0, h) / h
+    gt_y2_clip = tf.clip_by_value(gt_y2 - y1, 0, h) / h
     gt_w_clip = gt_x2_clip - gt_x1_clip
     gt_h_clip = gt_y2_clip - gt_y1_clip
     gt_bboxes = tf.stack([gt_x1_clip, gt_y1_clip, gt_w_clip, gt_h_clip],
@@ -166,7 +167,7 @@ def data_augmentation(img, gt_bboxes, gt_cats, seg, config):
     # XXX reference implementation also randomizes interpolation method
     img_size = config['image_size']
     img_out = tf.image.resize_images(img[..., :3], [img_size, img_size])
-    gt_bboxes, gt_cats = filter_small_gt(gt_bboxes, gt_cats, 2/config['image_size'])
+    gt_bboxes, gt_cats = filter_small_gt(gt_bboxes, gt_cats, 2 / config['image_size'])
 
     if seg is not None:
         seg_shape = config['fm_sizes'][0]
@@ -179,22 +180,22 @@ def data_augmentation(img, gt_bboxes, gt_cats, seg, config):
 def batch_iou_tf(proposals, gt):
     bboxes = tf.reshape(tf.transpose(proposals), [4, -1, 1])
     bboxes_x1 = bboxes[0]
-    bboxes_x2 = bboxes[0]+bboxes[2]
+    bboxes_x2 = bboxes[0] + bboxes[2]
     bboxes_y1 = bboxes[1]
-    bboxes_y2 = bboxes[1]+bboxes[3]
+    bboxes_y2 = bboxes[1] + bboxes[3]
 
     gt = tf.reshape(tf.transpose(gt), [4, 1, -1])
     gt_x1 = gt[0]
-    gt_x2 = gt[0]+gt[2]
+    gt_x2 = gt[0] + gt[2]
     gt_y1 = gt[1]
-    gt_y2 = gt[1]+gt[3]
+    gt_y2 = gt[1] + gt[3]
 
     widths = tf.maximum(0.0, tf.minimum(bboxes_x2, gt_x2) -
                         tf.maximum(bboxes_x1, gt_x1))
     heights = tf.maximum(0.0, tf.minimum(bboxes_y2, gt_y2) -
                          tf.maximum(bboxes_y1, gt_y1))
-    intersection = widths*heights
-    union = bboxes[2]*bboxes[3] + gt[2]*gt[3] - intersection
+    intersection = widths * heights
+    union = bboxes[2] * bboxes[3] + gt[2] * gt[3] - intersection
     return (intersection / union)
 
 
@@ -211,13 +212,13 @@ def encode_bboxes_tf(proposals, gt, config):
     gt_w = gt[..., 2]
     gt_h = gt[..., 3]
 
-    diff_x = (gt_x + 0.5*gt_w - prop_x - 0.5*prop_w)/prop_w
-    diff_y = (gt_y + 0.5*gt_h - prop_y - 0.5*prop_h)/prop_h
-    diff_w = tf.log(gt_w/prop_w)
-    diff_h = tf.log(gt_h/prop_h)
+    diff_x = (gt_x + 0.5 * gt_w - prop_x - 0.5 * prop_w) / prop_w
+    diff_y = (gt_y + 0.5 * gt_h - prop_y - 0.5 * prop_h) / prop_h
+    diff_w = tf.log(gt_w / prop_w)
+    diff_h = tf.log(gt_h / prop_h)
 
     var_x, var_y, var_w, var_h = config['prior_variance']
-    x = tf.stack([diff_x/var_x, diff_y/var_y, diff_w/var_w, diff_h/var_h], -1)
+    x = tf.stack([diff_x / var_x, diff_y / var_y, diff_w / var_w, diff_h / var_h], -1)
     return x
 
 
@@ -238,4 +239,3 @@ def apply_with_random_selector(x, func, num_cases):
     return control_flow_ops.merge([
         func(control_flow_ops.switch(x, tf.equal(sel, case))[1], case)
         for case in range(num_cases)])[0]
-

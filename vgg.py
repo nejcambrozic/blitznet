@@ -1,5 +1,7 @@
 import os
+
 import tensorflow as tf
+
 from config import config, MEAN_COLOR
 from paths import INIT_WEIGHTS_DIR
 
@@ -11,7 +13,8 @@ DEFAULT_SSD_SCOPE = 'ssd'
 
 
 class VGG(object):
-    def __init__(self, config, training=True, weight_decay=0.0005, depth=16, scope=DEFAULT_SCOPE, reuse=False):
+    def __init__(self, config, training=True, weight_decay=0.0005, depth=16, scope=DEFAULT_SCOPE,
+                 reuse=False):
         self.scope = scope
         self.config = config
         self.weight_decay = weight_decay
@@ -35,32 +38,37 @@ class VGG(object):
         locations = []
         confidences = []
 
-        with tf.variable_scope(DEFAULT_SSD_SCOPE, DEFAULT_SSD_SCOPE, [self.outputs[k] for k in self.layers], reuse=self.reuse) as sc:
+        with tf.variable_scope(DEFAULT_SSD_SCOPE, DEFAULT_SSD_SCOPE,
+                               [self.outputs[k] for k in self.layers], reuse=self.reuse) as sc:
             end_points_collection = sc.name + '_end_points'
             with slim.arg_scope(self.vgg_arg_scope()):
-                with slim.arg_scope([slim.conv2d], outputs_collections=end_points_collection, activation_fn=None):
-                    scale_mult = tf.get_variable("conv4_3_scale_mult", (512,), tf.float32, tf.constant_initializer(20.0))
+                with slim.arg_scope([slim.conv2d], outputs_collections=end_points_collection,
+                                    activation_fn=None):
+                    scale_mult = tf.get_variable("conv4_3_scale_mult", (512,), tf.float32,
+                                                 tf.constant_initializer(20.0))
                     tf.summary.histogram("scale_mult", scale_mult)
                     lname = '%s/conv4/conv4_3' % self.scope
-                    self.outputs[lname] = tf.nn.l2_normalize(self.outputs[lname], (1, 2), name='conv4_3_l2_normalization')*tf.reshape(scale_mult, (1, 1, 1, 512))
+                    self.outputs[lname] = tf.nn.l2_normalize(self.outputs[lname], (1, 2),
+                                                             name='conv4_3_l2_normalization') * tf.reshape(
+                        scale_mult, (1, 1, 1, 512))
                     for i, layer_name in enumerate(self.layers):
                         src_layer = self.outputs[layer_name]
                         shape = src_layer.get_shape()
                         wh = shape[1] * shape[2]
                         batch_size = shape[0]
-                        num_priors = len(self.config['aspect_ratios'][i])*2 + 2
+                        num_priors = len(self.config['aspect_ratios'][i]) * 2 + 2
 
                         loc = slim.conv2d(src_layer, num_priors * 4, [3, 3],
-                                        scope=layer_name+'/location')
+                                          scope=layer_name + '/location')
                         loc_sh = tf.stack([batch_size, wh * num_priors, 4])
                         locations.append(tf.reshape(loc, loc_sh))
-                        tf.summary.histogram("location/"+layer_name, locations[-1])
+                        tf.summary.histogram("location/" + layer_name, locations[-1])
 
                         conf = slim.conv2d(src_layer, num_priors * num_classes, [3, 3],
-                                        scope=layer_name+'/confidence')
+                                           scope=layer_name + '/confidence')
                         conf_sh = tf.stack([batch_size, wh * num_priors, num_classes])
                         confidences.append(tf.reshape(conf, conf_sh))
-                        tf.summary.histogram("confidence/"+layer_name, confidences[-1])
+                        tf.summary.histogram("confidence/" + layer_name, confidences[-1])
 
                     ssd_end_points = slim.utils.convert_collection_to_dict(end_points_collection)
                     self.outputs.update(ssd_end_points)
@@ -72,7 +80,7 @@ class VGG(object):
 
     def create_trunk(self, images):
         # Convert RGB to BGR
-        red, green, blue = tf.split(images*255, 3, axis=3)
+        red, green, blue = tf.split(images * 255, 3, axis=3)
         inputs = tf.concat([blue, green, red], 3) - MEAN_COLOR
         with slim.arg_scope(self.vgg_arg_scope()):
             with tf.variable_scope(self.scope, DEFAULT_SCOPE, [inputs], reuse=self.reuse) as sc:
@@ -115,4 +123,4 @@ class VGG(object):
                     slots.add(slot)
         variables = list(set(variables) - slots)
         ckpt = ATROUS_CKPT
-        return slim.assign_from_checkpoint(ckpt, variables) + (variables, )
+        return slim.assign_from_checkpoint(ckpt, variables) + (variables,)

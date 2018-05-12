@@ -39,7 +39,8 @@ def _bytes_feature(value):
     return tf.train.Feature(bytes_list=tf.train.BytesList(value=[value]))
 
 
-def _convert_to_example(filename, image_buffer, bboxes, cats, difficulty, segmentation, height, width):
+def _convert_to_example(filename, image_buffer, bboxes, cats, difficulty, segmentation, height,
+                        width):
     xmin = bboxes[:, 0].tolist()
     ymin = bboxes[:, 1].tolist()
     xmax = (bboxes[:, 2] + bboxes[:, 0]).tolist()
@@ -84,6 +85,7 @@ splits_to_sizes = {
     'coco-seg-train2014-*': 82783,
     'coco-seg-valminusminival2014-*': 35504,
     'coco-seg-minival2014': 5000,
+    'modd2-all': 5156,
 }
 
 
@@ -113,7 +115,8 @@ def get_dataset(*files):
 
     items_to_handlers = {
         'image': slim.tfexample_decoder.Image('image/encoded', 'image/format', channels=3),
-        'image/segmentation': slim.tfexample_decoder.Image('image/segmentation/encoded', 'image/segmentation/format', channels=1),
+        'image/segmentation': slim.tfexample_decoder.Image('image/segmentation/encoded',
+                                                           'image/segmentation/format', channels=1),
         'object/bbox': slim.tfexample_decoder.BoundingBox(
             ['ymin', 'xmin', 'ymax', 'xmax'], 'image/object/bbox/'),
         'object/label': slim.tfexample_decoder.Tensor('image/object/class/label'),
@@ -166,17 +169,18 @@ def create_coco_dataset(split):
         realsplit = split
 
     shard_size = 5000
-    num_shards = ceil(sz/shard_size)
+    num_shards = ceil(sz / shard_size)
     print("So we decided to split it in %i shards" % num_shards)
     image_placeholder = tf.placeholder(dtype=tf.uint8)
     encoded_image = tf.image.encode_png(tf.expand_dims(image_placeholder, 2))
     with tf.Session('') as sess:
         for shard in range(num_shards):
             print("Shard %i/%i is starting" % (shard, num_shards))
-            output_file = os.path.join(DATASETS_ROOT, 'coco-seg-%s-%.5d-of-%.5d' % (split, shard, num_shards))
+            output_file = os.path.join(DATASETS_ROOT,
+                                       'coco-seg-%s-%.5d-of-%.5d' % (split, shard, num_shards))
             writer = tf.python_io.TFRecordWriter(output_file)
 
-            for i in range(shard*shard_size, min(sz, (shard+1)*shard_size)):
+            for i in range(shard * shard_size, min(sz, (shard + 1) * shard_size)):
                 f = loader.get_filenames()[i]
                 img = loader.coco.loadImgs(f)[0]
                 path = '%simages/%s/%s' % (loader.root, realsplit, img['file_name'])
@@ -195,7 +199,8 @@ def create_coco_dataset(split):
 
                 png_string = sess.run(encoded_image,
                                       feed_dict={image_placeholder: segmentation})
-                example = _convert_to_example(path, image_data, gt_bb, gt_cats, diff, png_string, h, w)
+                example = _convert_to_example(path, image_data, gt_bb, gt_cats, diff, png_string, h,
+                                              w)
                 if i % 100 == 0:
                     print("%i files are processed" % i)
                 writer.write(example.SerializeToString())
@@ -212,7 +217,7 @@ def create_voc_dataset(year, split, segmentation=False, augmented_seg=False):
         segmentation: if True, segmentation annotations are encoded
         augmented_seg: if True, encodes extra annotations
         """
-    assert not ((year=='07' or split=='val') and augmented_seg==True), \
+    assert not ((year == '07' or split == 'val') and augmented_seg == True), \
         'There is no extra segmentation masks for VOC07 or VOC12-val'
 
     loader = VOCLoader(year, split, segmentation=segmentation, augmented_seg=augmented_seg)

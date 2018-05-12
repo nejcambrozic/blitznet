@@ -1,10 +1,9 @@
 import logging
 import os
-import cv2
-
-import numpy as np
 import xml.etree.ElementTree as ET
 
+import cv2
+import numpy as np
 from PIL import Image
 
 from paths import DATASETS_ROOT
@@ -73,8 +72,8 @@ class VOCLoader():
             bbox_tag = obj.find('bndbox')
             x = int(bbox_tag.find('xmin').text)
             y = int(bbox_tag.find('ymin').text)
-            w = int(bbox_tag.find('xmax').text)-x
-            h = int(bbox_tag.find('ymax').text)-y
+            w = int(bbox_tag.find('xmax').text) - x
+            h = int(bbox_tag.find('ymax').text) - y
             bboxes.append((x, y, w, h))
 
         gt_cats = np.array(cats)

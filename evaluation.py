@@ -1,13 +1,14 @@
-import numpy as np
-import progressbar
-import config
-import logging
 import json
+import logging
 import os
 
-from tabulate import tabulate
-from config import args
+import numpy as np
+import progressbar
 from pycocotools.cocoeval import COCOeval
+from tabulate import tabulate
+
+import config
+from config import args
 
 log = logging.getLogger()
 
@@ -36,7 +37,7 @@ class Evaluation(object):
         return self.compact_results(table, ckpt, iou)
 
     def compute_ap(self):
-        """computes average precision for all categories"""
+        """computes average precision for all categories""" +
         aps = {}
         for cid in range(1, self.loader.num_classes):
             cat_name = self.loader.ids_to_cats[cid]
@@ -53,9 +54,9 @@ class Evaluation(object):
         table = []
         for cid in range(1, self.loader.num_classes):
             cat_name = self.loader.ids_to_cats[cid]
-            table.append((cat_name, ) + tuple(aps.get(cat_name, 'N/A') for aps in eval_cache))
+            table.append((cat_name,) + tuple(aps.get(cat_name, 'N/A') for aps in eval_cache))
         mean_ap = np.mean([a for a in list(aps.values()) if a >= 0])
-        table.append(("AVERAGE", ) + tuple(np.mean(list(aps.values())) for aps in eval_cache))
+        table.append(("AVERAGE",) + tuple(np.mean(list(aps.values())) for aps in eval_cache))
         x = tabulate(table, headers=(["Category", "mAP (all)"]),
                      tablefmt='orgtbl', floatfmt=".3f")
         log.info("Eval results:\n%s", x)
@@ -103,7 +104,7 @@ class Evaluation(object):
         """Computes average precision for one category"""
         cgt = self.gt[cid]
         cdets = np.array(self.dets[cid])
-        if (cdets.shape == (0, )):
+        if (cdets.shape == (0,)):
             return None, None
         scores = cdets[:, 1]
         sorted_inds = np.argsort(-scores)

@@ -1,12 +1,12 @@
 import argparse
 import pickle
-import numpy as np
+from collections import defaultdict, namedtuple
+
 import matplotlib.pyplot as plt
+import numpy as np
 from PIL import Image, ImageDraw
 
-from collections import defaultdict, namedtuple
 from voc_loader import VOCLoader
-
 
 Detection = namedtuple('Detection', ['cat', 'score', 'bbox'])
 
@@ -38,17 +38,17 @@ def read_cache_detections(loader):
         fun = lambda x: int(round(float(x)))
 
         for cat in loader.categories:
-            with open(path+'/comp4_%sdet_test_%s.txt' % (prefix, cat), 'r') as f:
+            with open(path + '/comp4_%sdet_test_%s.txt' % (prefix, cat), 'r') as f:
                 for line in f.read().split('\n'):
                     if line == '':
                         continue
                     img, score, x, y, x2, y2 = line.split(' ')
                     x, y, x2, y2 = tuple(map(fun, [x, y, x2, y2]))
-                    w = x2-x
-                    h = y2-y
+                    w = x2 - x
+                    h = y2 - y
                     score = float(score)
                     results[img].append(Detection(cat=loader.cats_to_ids[cat],
-                                                score=score, bbox=(x, y, w, h)))
+                                                  score=score, bbox=(x, y, w, h)))
 
         with open(path_cache, 'wb') as f:
             pickle.dump(results, f)
@@ -94,29 +94,29 @@ def voc_ap(rec, prec, use_07_metric=False):
 def batch_iou(proposals, gt):
     bboxes = np.transpose(proposals).reshape((4, -1, 1))
     bboxes_x1 = bboxes[0]
-    bboxes_x2 = bboxes[0]+bboxes[2]
+    bboxes_x2 = bboxes[0] + bboxes[2]
     bboxes_y1 = bboxes[1]
-    bboxes_y2 = bboxes[1]+bboxes[3]
+    bboxes_y2 = bboxes[1] + bboxes[3]
 
     gt = np.transpose(gt).reshape((4, 1, -1))
     gt_x1 = gt[0]
-    gt_x2 = gt[0]+gt[2]
+    gt_x2 = gt[0] + gt[2]
     gt_y1 = gt[1]
-    gt_y2 = gt[1]+gt[3]
+    gt_y2 = gt[1] + gt[3]
 
     widths = np.maximum(0, np.minimum(bboxes_x2, gt_x2) -
                         np.maximum(bboxes_x1, gt_x1))
     heights = np.maximum(0, np.minimum(bboxes_y2, gt_y2) -
                          np.maximum(bboxes_y1, gt_y1))
-    intersection = widths*heights
-    union = bboxes[2]*bboxes[3] + gt[2]*gt[3] - intersection
+    intersection = widths * heights
+    union = bboxes[2] * bboxes[3] + gt[2] * gt[3] - intersection
     return (intersection / union)
 
 
 def eval_category(cid, gt, dets):
     cgt = gt[cid]
     cdets = np.array(dets[cid])
-    if (cdets.shape == (0, )):
+    if (cdets.shape == (0,)):
         return None
     scores = cdets[:, 1]
     sorted_inds = np.argsort(-scores)
@@ -249,14 +249,15 @@ def draw(img, dets, cats, scores, dets_eval, gt_eval, img_id):
         plt.show()
     if args.dump_folder != '':
         plt.axis('off')
-        plt.savefig(args.dump_folder+'/%06d.jpg' % img_id, bbox_inches='tight')
+        plt.savefig(args.dump_folder + '/%06d.jpg' % img_id, bbox_inches='tight')
     del dr
 
 
 parser = argparse.ArgumentParser(description='Analyze detection results of various networks')
 parser.add_argument("--min_score", default=0.6, type=float)
 parser.add_argument("--max_map", default=1.5, type=float)
-parser.add_argument("--net", required=True, choices=['ssd300', 'ssd512', 'frcnn', 'blitz300', 'blitz512', 'blitz300-rpn'])
+parser.add_argument("--net", required=True,
+                    choices=['ssd300', 'ssd512', 'frcnn', 'blitz300', 'blitz512', 'blitz300-rpn'])
 # parser.add_argument("--x4", default=False, action='store_true')
 parser.add_argument("--images", default='', type=str)
 parser.add_argument("--write_difficult", default=False, action='store_true')
@@ -296,7 +297,7 @@ if __name__ == '__main__':
             gt[cid][int(img_id)] = {'bbox': bbox, 'difficult': diff, 'det': det, 'score': mscore}
 
         for d in results[img_id]:
-            dets[d.cat].append((int(img_id), d.score, ) + d.bbox)
+            dets[d.cat].append((int(img_id), d.score,) + d.bbox)
             # if d.score > 0.6:
             #     print(loader.ids_to_cats[d.cat], d.score, d.bbox)
 

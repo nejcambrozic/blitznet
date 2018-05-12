@@ -3,15 +3,13 @@ import os
 
 import tensorflow as tf
 
-import resnet_v1
-import resnet_utils
-
-from resnet_v1 import bottleneck, bottleneck_skip
-from utils import print_variables
 import config
+import resnet_utils
+import resnet_v1
 from config import args, MEAN_COLOR
 from paths import INIT_WEIGHTS_DIR
-
+from resnet_v1 import bottleneck, bottleneck_skip
+from utils import print_variables
 
 log = logging.getLogger()
 slim = tf.contrib.slim
@@ -38,7 +36,7 @@ class ResNet(object):
             raise ValueError
 
     def create_trunk(self, images):
-        red, green, blue = tf.split(images*255, 3, axis=3)
+        red, green, blue = tf.split(images * 255, 3, axis=3)
         images = tf.concat([blue, green, red], 3) - MEAN_COLOR
 
         with slim.arg_scope(resnet_v1.resnet_arg_scope(is_training=self.training,
@@ -78,16 +76,21 @@ class ResNet(object):
             num_fm = 2048
             blocks = [
                 resnet_utils.Block(
-                    'block5', bottleneck, [(num_fm, num_fm//4, 2)] + [(num_fm, num_fm//4, 1)] * (block_depth-1)),
+                    'block5', bottleneck,
+                    [(num_fm, num_fm // 4, 2)] + [(num_fm, num_fm // 4, 1)] * (block_depth - 1)),
                 resnet_utils.Block(
-                    'block6', bottleneck, [(num_fm, num_fm//4, 2)] + [(num_fm, num_fm//4, 1)] * (block_depth-1)),
+                    'block6', bottleneck,
+                    [(num_fm, num_fm // 4, 2)] + [(num_fm, num_fm // 4, 1)] * (block_depth - 1)),
                 resnet_utils.Block(
-                    'block7', bottleneck, [(num_fm, num_fm//4, 2)] + [(num_fm, num_fm//4, 1)] * (block_depth-1)),
+                    'block7', bottleneck,
+                    [(num_fm, num_fm // 4, 2)] + [(num_fm, num_fm // 4, 1)] * (block_depth - 1)),
             ]
             if args.image_size == 512:
                 blocks += [
                     resnet_utils.Block(
-                        'block8', bottleneck, [(num_fm, num_fm//4, 2)] + [(num_fm, num_fm//4, 1)] * (block_depth-1)),
+                        'block8', bottleneck,
+                        [(num_fm, num_fm // 4, 2)] + [(num_fm, num_fm // 4, 1)] * (
+                                    block_depth - 1)),
                 ]
 
             net, endpoints = resnet_v1.resnet_v1(net, blocks,
@@ -96,44 +99,44 @@ class ResNet(object):
                                                  reuse=self.reuse,
                                                  scope=DEFAULT_SSD_SCOPE)
             self.outputs.update(endpoints)
-            with tf.variable_scope(DEFAULT_SSD_SCOPE+"_back", reuse=self.reuse):
+            with tf.variable_scope(DEFAULT_SSD_SCOPE + "_back", reuse=self.reuse):
                 end_points_collection = "reverse_ssd_end_points"
                 with slim.arg_scope([slim.conv2d, bottleneck_skip],
                                     outputs_collections=end_points_collection):
                     top_fm = args.top_fm
-                    int_fm = top_fm//4
+                    int_fm = top_fm // 4
                     if args.image_size == 512:
                         # as long as the number of pooling layers is bigger due to
                         # the higher resolution, an extra layer is appended
-                        net = bottleneck_skip(net, self.outputs[DEFAULT_SSD_SCOPE+'/block7'],
+                        net = bottleneck_skip(net, self.outputs[DEFAULT_SSD_SCOPE + '/block7'],
                                               top_fm, int_fm, scope='block_rev7')
 
-                    net = bottleneck_skip(net, self.outputs[DEFAULT_SSD_SCOPE+'/block6'],
+                    net = bottleneck_skip(net, self.outputs[DEFAULT_SSD_SCOPE + '/block6'],
                                           top_fm, int_fm, scope='block_rev6')
-                    net = bottleneck_skip(net, self.outputs[DEFAULT_SSD_SCOPE+'/block5'],
+                    net = bottleneck_skip(net, self.outputs[DEFAULT_SSD_SCOPE + '/block5'],
                                           top_fm, int_fm, scope='block_rev5')
-                    net = bottleneck_skip(net, self.outputs[self.scope+'/block4'],
+                    net = bottleneck_skip(net, self.outputs[self.scope + '/block4'],
                                           top_fm, int_fm, scope='block_rev4')
-                    net = bottleneck_skip(net, self.outputs[self.scope+'/block3'],
+                    net = bottleneck_skip(net, self.outputs[self.scope + '/block3'],
                                           top_fm, int_fm, scope='block_rev3')
-                    net = bottleneck_skip(net, self.outputs[self.scope+'/block2'],
+                    net = bottleneck_skip(net, self.outputs[self.scope + '/block2'],
                                           top_fm, int_fm, scope='block_rev2')
                     if args.x4:
                         # To provide stride 4 we add one more layer with upsampling
-                        net = bottleneck_skip(net, self.outputs[self.scope+'/block1'],
+                        net = bottleneck_skip(net, self.outputs[self.scope + '/block1'],
                                               top_fm, int_fm, scope='block_rev1')
                 endpoints = slim.utils.convert_collection_to_dict(end_points_collection)
             self.outputs.update(endpoints)
 
             # Creating an output of spatial resolution 1x1 with conventional name 'pool6'
             if args.image_size == 512:
-                self.outputs[DEFAULT_SSD_SCOPE+'/pool6'] =\
-                        tf.reduce_mean(self.outputs['ssd_back/block_rev7/shortcut'],
-                                       [1, 2], name='pool6', keep_dims=True)
+                self.outputs[DEFAULT_SSD_SCOPE + '/pool6'] = \
+                    tf.reduce_mean(self.outputs['ssd_back/block_rev7/shortcut'],
+                                   [1, 2], name='pool6', keep_dims=True)
             else:
-                self.outputs[DEFAULT_SSD_SCOPE+'/pool6'] =\
-                        tf.reduce_mean(self.outputs['ssd_back/block_rev6/shortcut'],
-                                       [1, 2], name='pool6', keep_dims=True)
+                self.outputs[DEFAULT_SSD_SCOPE + '/pool6'] = \
+                    tf.reduce_mean(self.outputs['ssd_back/block_rev6/shortcut'],
+                                   [1, 2], name='pool6', keep_dims=True)
 
     def create_multibox_head(self, num_classes):
         """Creates outputs for classification and localization of all candidate bboxes"""
@@ -143,7 +146,8 @@ class ResNet(object):
             end_points_collection = sc.name + '_end_points'
             with slim.arg_scope(self.vgg_arg_scope()):
                 with slim.arg_scope([slim.conv2d], outputs_collections=end_points_collection,
-                                    weights_initializer=slim.variance_scaling_initializer(factor=0.1),
+                                    weights_initializer=slim.variance_scaling_initializer(
+                                        factor=0.1),
                                     activation_fn=None):
                     for i, layer_name in enumerate(self.layers):
 
@@ -152,28 +156,28 @@ class ResNet(object):
                         if args.head == 'shared':
                             scope_suffix = ''
                         elif args.head == 'nonshared':
-                            scope_suffix = '/'+layer_name
+                            scope_suffix = '/' + layer_name
                         else:
                             raise ValueError
                         src_layer = self.outputs[layer_name]
                         shape = src_layer.get_shape()
                         wh = shape[1] * shape[2]
                         batch_size = shape[0]
-                        num_priors = len(self.config['aspect_ratios'][i])*2 + 2
+                        num_priors = len(self.config['aspect_ratios'][i]) * 2 + 2
 
                         loc = slim.conv2d(src_layer, num_priors * 4,
                                           [args.det_kernel, args.det_kernel],
-                                          scope='location'+scope_suffix)
+                                          scope='location' + scope_suffix)
                         loc_sh = tf.stack([batch_size, wh * num_priors, 4])
                         locations.append(tf.reshape(loc, loc_sh))
-                        tf.summary.histogram("location/"+layer_name, locations[-1])
+                        tf.summary.histogram("location/" + layer_name, locations[-1])
 
                         conf = slim.conv2d(src_layer, num_priors * num_classes,
                                            [args.det_kernel, args.det_kernel],
-                                           scope='confidence'+scope_suffix)
+                                           scope='confidence' + scope_suffix)
                         conf_sh = tf.stack([batch_size, wh * num_priors, num_classes])
                         confidences.append(tf.reshape(conf, conf_sh))
-                        tf.summary.histogram("confidence/"+layer_name, confidences[-1])
+                        tf.summary.histogram("confidence/" + layer_name, confidences[-1])
 
                     ssd_end_points = slim.utils.convert_collection_to_dict(end_points_collection)
                     self.outputs.update(ssd_end_points)
@@ -190,7 +194,6 @@ class ResNet(object):
                                 kernel_size=args.seg_filter_size,
                                 weights_regularizer=slim.l2_regularizer(self.weight_decay),
                                 biases_initializer=tf.zeros_initializer()):
-
                 seg_materials = []
                 seg_size = self.config['fm_sizes'][0]
                 for i in range(len(self.layers)):
@@ -200,7 +203,7 @@ class ResNet(object):
                     seg_materials.append(seg)
                 seg_materials = tf.concat(seg_materials, -1)
                 seg_logits = slim.conv2d(seg_materials, num_classes,
-                                        kernel_size=3, activation_fn=None)
+                                         kernel_size=3, activation_fn=None)
                 self.outputs['segmentation'] = seg_logits
                 return self.outputs['segmentation']
 
@@ -215,5 +218,4 @@ class ResNet(object):
                 if slot is not None:
                     slots.add(slot)
         variables = list(set(variables) - slots)
-        return slim.assign_from_checkpoint(self.ckpt, variables) + (variables, )
-
+        return slim.assign_from_checkpoint(self.ckpt, variables) + (variables,)

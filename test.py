@@ -1,19 +1,19 @@
 #!/usr/bin/env python3
 
-from glob import glob
 import logging
 import logging.config
 import os
-
-import tensorflow as tf
-import numpy as np
-from PIL import ImageFont
-
-from config import get_logging_config, args, evaluation_logfile
-from config import config as net_config
-from paths import CKPT_ROOT
+from glob import glob
 
 import matplotlib
+import numpy as np
+import tensorflow as tf
+from PIL import ImageFont
+
+from config import config as net_config
+from config import get_logging_config, args, evaluation_logfile
+from paths import CKPT_ROOT
+
 matplotlib.use('Agg')
 
 from vgg import VGG
@@ -69,7 +69,7 @@ def main(argv=None):  # pylint: disable=unused-argument
             max_checked = get_last_eval(out_file)
             log.debug("Maximum checked ckpt is %i" % max_checked)
             with open(out_file, 'a') as f:
-                start = max(args.min_ckpt, max_checked+1)
+                start = max(args.min_ckpt, max_checked + 1)
                 ckpt_files = glob(ckpts_folder + '*.data*')
                 folder_has_nums = np.array(list((map(filename2num, ckpt_files))), dtype='int')
                 nums_available = sorted(folder_has_nums[folder_has_nums >= start])

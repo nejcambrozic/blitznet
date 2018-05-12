@@ -1,6 +1,7 @@
-import sys
-import os
 import argparse
+import os
+import sys
+
 from paths import *
 
 # Mean color to subtract before propagating an image through a DNN
@@ -59,7 +60,7 @@ parser.add_argument("--learning_rate", default=1e-4, type=float)
 # For training with warmup, chose the number of steps
 parser.add_argument("--warmup_step", default=0, type=int)
 
-#For training with warmup, chose the starting learning rate
+# For training with warmup, chose the starting learning rate
 parser.add_argument("--warmup_lr", default=1e-5, type=float)
 
 # Optimizer of choice
@@ -88,7 +89,7 @@ parser.add_argument("--no_seg_gt", default=False, action='store_true')
 parser.add_argument("--n_base_channels", default=64, type=int)
 
 # The size of the conv filter used to map feature maps to intermediate representations before segmentation
-parser.add_argument("--seg_filter_size", default=1, type=int, choices=[1, 3])
+parser.add_argument("--seg_filter_size", default=3, type=int, choices=[1, 3])
 
 # EVALUATION FLAGS
 # Automatic evaluation of several checkpoints
@@ -142,7 +143,7 @@ data_augmentation_config = {
     'sample_jaccards': [0.0, 0.1, 0.3, 0.5, 0.7, 0.9],
     'flip_prob': 0.5,
     'crop_max_tries': 50,
-    'zoomout_color': [x/255.0 for x in reversed(MEAN_COLOR)],
+    'zoomout_color': [x / 255.0 for x in reversed(MEAN_COLOR)],
 }
 
 config_vgg = {
@@ -160,51 +161,60 @@ config_vgg = {
 evaluation_logfile = '1evaluations.txt'
 normAP_constant = 400
 
-
 config_resnet_ssd512_x4 = {'image_size': 512,
                            'smallest_scale': 0.02,
                            'min_scale': 0.08,
                            'max_scale': 0.95,
-                           'layers': ['ssd_back/block_rev1', 'ssd_back/block_rev2', 'ssd_back/block_rev3', 'ssd_back/block_rev4', 'ssd_back/block_rev5', 'ssd_back/block_rev6', 'ssd_back/block_rev7', 'ssd/pool6'],
-                           'aspect_ratios': [[2, 3], [2, 3], [2, 3], [2, 3], [2, 3], [2, 3], [2, 3], [2, 3]],
+                           'layers': ['ssd_back/block_rev1', 'ssd_back/block_rev2',
+                                      'ssd_back/block_rev3', 'ssd_back/block_rev4',
+                                      'ssd_back/block_rev5', 'ssd_back/block_rev6',
+                                      'ssd_back/block_rev7', 'ssd/pool6'],
+                           'aspect_ratios': [[2, 3], [2, 3], [2, 3], [2, 3], [2, 3], [2, 3], [2, 3],
+                                             [2, 3]],
                            'train_augmentation': data_augmentation_config,
                            'prior_variance': [0.1, 0.1, 0.2, 0.2],
                            'fm_sizes': [128, 64, 32, 16, 8, 4, 2, 1],
-}
+                           }
 
 config_resnet_ssd512_nox4 = {'image_size': 512,
                              'smallest_scale': 0.04,
                              'min_scale': 0.1,
                              'max_scale': 0.95,
-                             'layers': ['ssd_back/block_rev2', 'ssd_back/block_rev3', 'ssd_back/block_rev4', 'ssd_back/block_rev5', 'ssd_back/block_rev6', 'ssd_back/block_rev7', 'ssd/pool6'],
-                             'aspect_ratios': [[2, 3], [2, 3], [2, 3], [2, 3], [2, 3], [2, 3], [2, 3]],
+                             'layers': ['ssd_back/block_rev2', 'ssd_back/block_rev3',
+                                        'ssd_back/block_rev4', 'ssd_back/block_rev5',
+                                        'ssd_back/block_rev6', 'ssd_back/block_rev7', 'ssd/pool6'],
+                             'aspect_ratios': [[2, 3], [2, 3], [2, 3], [2, 3], [2, 3], [2, 3],
+                                               [2, 3]],
                              'train_augmentation': data_augmentation_config,
                              'prior_variance': [0.1, 0.1, 0.2, 0.2],
                              'fm_sizes': [64, 32, 16, 8, 4, 2, 1],
-}
+                             }
 
 config_resnet_nox4 = {'image_size': 300,
                       'smallest_scale': 0.1,
                       'min_scale': 0.2,
                       'max_scale': 0.95,
-                      'layers': ['ssd_back/block_rev2', 'ssd_back/block_rev3', 'ssd_back/block_rev4', 'ssd_back/block_rev5', 'ssd_back/block_rev6', 'ssd/pool6'],
+                      'layers': ['ssd_back/block_rev2', 'ssd_back/block_rev3',
+                                 'ssd_back/block_rev4', 'ssd_back/block_rev5',
+                                 'ssd_back/block_rev6', 'ssd/pool6'],
                       'aspect_ratios': [[2, 3], [2, 3], [2, 3], [2, 3], [2, 3], [2, 3]],
                       'train_augmentation': data_augmentation_config,
                       'prior_variance': [0.1, 0.1, 0.2, 0.2],
                       'fm_sizes': [38, 19, 10, 5, 3, 1],
-}
+                      }
 
 config_resnet_x4 = {'image_size': 300,
                     'smallest_scale': 0.04,
                     'min_scale': 0.1,
                     'max_scale': 0.95,
-                    'layers': [ 'ssd_back/block_rev1', 'ssd_back/block_rev2', 'ssd_back/block_rev3', 'ssd_back/block_rev4', 'ssd_back/block_rev5', 'ssd_back/block_rev6', 'ssd/pool6'],
+                    'layers': ['ssd_back/block_rev1', 'ssd_back/block_rev2', 'ssd_back/block_rev3',
+                               'ssd_back/block_rev4', 'ssd_back/block_rev5', 'ssd_back/block_rev6',
+                               'ssd/pool6'],
                     'aspect_ratios': [[2, 3], [2, 3], [2, 3], [2, 3], [2, 3], [2, 3], [2, 3]],
                     'train_augmentation': data_augmentation_config,
                     'prior_variance': [0.1, 0.1, 0.2, 0.2],
                     'fm_sizes': [75, 38, 19, 10, 5, 3, 1],
-}
-
+                    }
 
 if args.trunk == 'resnet50' and args.x4 and args.image_size == 300:
     config = config_resnet_x4
@@ -242,7 +252,7 @@ def get_logging_config(run):
                 'level': 'DEBUG',
                 'formatter': 'standard',
                 'class': 'logging.FileHandler',
-                'filename': LOGS+run+'.log'
+                'filename': LOGS + run + '.log'
             },
         },
         'loggers': {

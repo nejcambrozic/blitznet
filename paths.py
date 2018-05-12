@@ -13,19 +13,19 @@ def check(dirname):
 EVAL_DIR = os.path.dirname(os.path.realpath(__file__))
 
 # Folder with datasets
-DATASETS_ROOT = check(os.path.join(EVAL_DIR, 'Datasets'))
+DATASETS_ROOT = check(os.path.join(EVAL_DIR, 'datasets'))
 
 # Where the checkpoints are stored
 CKPT_ROOT = check(os.path.join(EVAL_DIR, 'archive/'))
 
 # Where the logs are stored
-LOGS = check(os.path.join(EVAL_DIR, 'Logs/Experiments/'))
+LOGS = check(os.path.join(EVAL_DIR, 'logs/experiments/'))
 
 # Where the algorithms visualizations are dumped
-RESULTS_DIR = check(os.path.join(EVAL_DIR, 'Results/'))
+RESULTS_DIR = check(os.path.join(EVAL_DIR, 'results/'))
 
 # Where the imagenet weights are located
-INIT_WEIGHTS_DIR = check(os.path.join(EVAL_DIR, 'Weights_imagenet/'))
+INIT_WEIGHTS_DIR = check(os.path.join(EVAL_DIR, 'weights_imagenet/'))
 
 # Where the demo images are located
-DEMO_DIR = check(os.path.join(EVAL_DIR, 'Demo/'))
+DEMO_DIR = check(os.path.join(EVAL_DIR, 'demo/'))

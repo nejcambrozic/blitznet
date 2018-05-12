@@ -1,13 +1,13 @@
 import os
+from math import ceil
 
 import numpy as np
 import tensorflow as tf
 
-from paths import DATASETS_ROOT
-from voc_loader import VOC_CATS, VOCLoader
 from coco_loader import COCOLoader, COCO_CATS
-
-from math import ceil
+from modd_loader import MODDLoader, MODD_CATS
+from paths import DATASETS_ROOT
+from voc_loader import VOCLoader, VOC_CATS
 
 slim = tf.contrib.slim
 
@@ -130,12 +130,20 @@ def get_dataset(*files):
 
     is_coco = all('coco' in f for f in files)
     is_voc = all('voc' in f for f in files)
-    if not (is_coco ^ is_voc):
-        raise ValueError("It is a bad idea to mix in one dataset VOC and COCO files")
+
+    is_modd = all('modd' in f for f in files)
+
+    # if not (is_coco ^ is_voc):
+    #    raise ValueError("It is a bad idea to mix in one dataset VOC and COCO files")
     if is_coco:
         categories = COCO_CATS
+        print("Training COCO")
     if is_voc:
         categories = VOC_CATS
+        print("Training VOC")
+    if is_modd:
+        categories = MODD_CATS
+        print("Training MODD")
 
     return slim.dataset.Dataset(
         data_sources=[os.path.join(DATASETS_ROOT, f) for f in files],
@@ -233,13 +241,52 @@ def create_voc_dataset(year, split, segmentation=False, augmented_seg=False):
     print("Done")
 
 
+def create_modd_dataset(split, segmentation=False, augmented_seg=False):
+    """packs a dataset to a protobuf file
+    Args:
+        year: the year of voc dataset. choice=['07', '12']
+        split: split of data, choice=['train', 'val', 'trainval', 'test']
+        segmentation: if True, segmentation annotations are encoded
+        augmented_seg: if True, encodes extra annotations
+        """
+
+    loader = MODDLoader(split, segmentation=segmentation, augmented_seg=augmented_seg)
+    print("Contains %i files" % len(loader.get_filenames()))
+    output_file = os.path.join(DATASETS_ROOT, 'modd-%s%s' %
+                               (split, '-segmentation' * segmentation))  # todo
+
+    image_placeholder = tf.placeholder(dtype=tf.uint8)
+    encoded_image = tf.image.encode_png(tf.expand_dims(image_placeholder, 2))
+    writer = tf.python_io.TFRecordWriter(output_file)
+    with tf.Session('') as sess:
+        for i, f in enumerate(loader.get_filenames()):
+            path = '%sJPEGImages/%s.jpg' % (loader.root, f)
+            with tf.gfile.FastGFile(path, 'rb') as ff:
+                image_data = ff.read()
+            gt_bb, segmentation, gt_cats, w, h, diff = loader.read_annotations(f)
+            gt_bb = normalize_bboxes(gt_bb, w, h)
+            png_string = sess.run(encoded_image,
+                                  feed_dict={image_placeholder: segmentation})
+            example = _convert_to_example(path, image_data, gt_bb, gt_cats,
+                                          diff, png_string, h, w)
+            if i % 100 == 0:
+                print("%i files are processed" % i)
+            writer.write(example.SerializeToString())
+
+        writer.close()
+    print("Done")
+
+
 if __name__ == '__main__':
+    create_voc_dataset('07', 'train')
     # create_voc_dataset('07', 'test')
     # create_voc_dataset('07', 'trainval')
     # create_voc_dataset('12', 'train', True, True)
-    create_voc_dataset('12', 'val', True)
+    # create_voc_dataset('12', 'val', True)
 
     # create_coco_dataset('val2014')
     # create_coco_dataset('valminusminival2014')
     # create_coco_dataset('minival2014')
     # create_coco_dataset('train2014')
+
+    # create_modd_dataset('all')

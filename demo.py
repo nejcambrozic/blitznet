@@ -1,26 +1,31 @@
-import tensorflow as tf
-import numpy as np
-from PIL import Image
-from os import path as osp
 from glob import glob
+from os import path as osp
 
-from paths import DEMO_DIR
-from detector import Detector
+import numpy as np
+import tensorflow as tf
+from PIL import Image
+
 from config import args, train_dir
 from config import config as net_config
+from detector import Detector
+from modd_loader import MODD_CATS
+from paths import DEMO_DIR
 from resnet import ResNet
+from voc_loader import VOC_CATS
 
 slim = tf.contrib.slim
 
-VOC_CATS = ['__background__', 'aeroplane', 'bicycle', 'bird', 'boat', 'bottle',
-            'bus', 'car', 'cat', 'chair', 'cow', 'diningtable', 'dog', 'horse',
-            'motorbike', 'person', 'pottedplant', 'sheep', 'sofa', 'train',
-            'tvmonitor']
 
+# VOC_CATS = ['__background__', 'aeroplane', 'bicycle', 'bird', 'boat', 'bottle',
+#            'bus', 'car', 'cat', 'chair', 'cow', 'diningtable', 'dog', 'horse',
+#            'motorbike', 'person', 'pottedplant', 'sheep', 'sofa', 'train',
+#            'tvmonitor']
+
+# MODD_CATS = ['__background__', 'largeobjects', 'smallobjects']
 
 class Loader():
     def __init__(self, folder=DEMO_DIR, data_format='.jpg'):
-        cats = VOC_CATS
+        cats = MODD_CATS  # VOC_CATS #
         self.folder = folder
         self.data_format = data_format
         self.cats_to_ids = dict(map(reversed, enumerate(cats)))
@@ -50,11 +55,11 @@ def main(argv=None):  # pylint: disable=unused-argument
     net = ResNet(config=net_config, depth=50, training=False)
     loader = Loader()
 
-
     with tf.Session(config=tf.ConfigProto(allow_soft_placement=True,
                                           log_device_placement=False)) as sess:
         detector = Detector(sess, net, loader, net_config, no_gt=args.no_seg_gt,
                             folder=osp.join(loader.folder, 'output'))
+        print('Restore ckpt arguments ', args.ckpt)
         detector.restore_from_ckpt(args.ckpt)
         for name in loader.get_filenames():
             image = loader.load_image(name)

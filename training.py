@@ -220,9 +220,8 @@ def train(dataset, net, config):
 
     c = tf.ConfigProto(allow_soft_placement=False,
                        log_device_placement=False)
-    c['gpu_options'] = tf.GPUOptions(
-        allow_growth=True)
-    c.gpu_options.visible_device_list = "0"
+    c['gpu_options'] = tf.GPUOptions(allow_growth=True, visible_device_list = "0")
+    
     with tf.Session(config=c) as sess:
         summary_writer = tf.summary.FileWriter(train_dir, sess.graph)
         sess.run(tf.global_variables_initializer())

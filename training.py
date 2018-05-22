@@ -218,8 +218,12 @@ def train(dataset, net, config):
     summary_op = tf.summary.merge_all()
     saver = tf.train.Saver(tf.global_variables(), max_to_keep=1000, keep_checkpoint_every_n_hours=1)
 
-    with tf.Session(config=tf.ConfigProto(allow_soft_placement=True,
-                                          log_device_placement=False)) as sess:
+    c = tf.ConfigProto(allow_soft_placement=False,
+                       log_device_placement=False)
+    c['gpu_options'] = tf.GPUOptions(
+        allow_growth=True)
+    c.gpu_options.visible_device_list = "0"
+    with tf.Session(config=c) as sess:
         summary_writer = tf.summary.FileWriter(train_dir, sess.graph)
         sess.run(tf.global_variables_initializer())
         sess.run(tf.local_variables_initializer())

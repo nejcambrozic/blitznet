@@ -294,4 +294,4 @@ if __name__ == '__main__':
     # create_coco_dataset('minival2014')
     # create_coco_dataset('train2014')
 
-    # create_modd_dataset('all')
+    create_modd_dataset('all')

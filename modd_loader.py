@@ -6,24 +6,26 @@ import cv2
 import numpy as np
 from PIL import Image
 
-from paths import DATASETS_ROOT
+from paths import IN_DATASETS_ROOT
 
 log = logging.getLogger()
 
+MODD2_CATS = ['__background__', 'obstacles']
+
 MODD_CATS = ['__background__', 'largeobjects', 'smallobjects']
+
 
 
 class MODDLoader():
     def __init__(self, split, segmentation=False, augmented_seg=False):
 
-        self.dataset = 'modd'
-
-        self.root = os.path.join(DATASETS_ROOT, 'modd2/')
+        self.dataset = split
+        self.root = os.path.join(IN_DATASETS_ROOT, split+'/')
         self.split = split
 
         # assert split in ['train', 'val', 'trainval', 'test']
 
-        cats = MODD_CATS
+        cats = MODD2_CATS
         self.cats_to_ids = dict(map(reversed, enumerate(cats)))
         self.ids_to_cats = dict(enumerate(cats))
         self.num_classes = len(cats)

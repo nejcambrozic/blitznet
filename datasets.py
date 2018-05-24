@@ -5,7 +5,7 @@ import numpy as np
 import tensorflow as tf
 
 from coco_loader import COCOLoader, COCO_CATS
-from modd_loader import MODDLoader, MODD_CATS
+from modd_loader import MODDLoader, MODD_CATS, MODD2_CATS
 from paths import DATASETS_ROOT
 from voc_loader import VOCLoader, VOC_CATS
 
@@ -85,7 +85,9 @@ splits_to_sizes = {
     'coco-seg-train2014-*': 82783,
     'coco-seg-valminusminival2014-*': 35504,
     'coco-seg-minival2014': 5000,
-    'modd2-all': 5156,
+    'modd1_voc_dataset': 540,
+    'modd2_voc_dataset': 5156,
+
 }
 
 
@@ -132,7 +134,7 @@ def get_dataset(*files):
     }
 
     is_coco = all('coco' in f for f in files)
-    is_voc = all('voc' in f for f in files)
+    is_voc = False #all('voc' in f for f in files)
 
     is_modd = all('modd' in f for f in files)
 
@@ -145,9 +147,10 @@ def get_dataset(*files):
         categories = VOC_CATS
         print("Training VOC")
     if is_modd:
-        categories = MODD_CATS
+        categories = MODD2_CATS
         print("Training MODD")
 
+    print(categories)
     return slim.dataset.Dataset(
         data_sources=[os.path.join(DATASETS_ROOT, f) for f in files],
         reader=tf.TFRecordReader,
@@ -257,7 +260,7 @@ def create_modd_dataset(split, segmentation=False, augmented_seg=False):
 
     loader = MODDLoader(split, segmentation=segmentation, augmented_seg=augmented_seg)
     print("Contains %i files" % len(loader.get_filenames()))
-    output_file = os.path.join(DATASETS_ROOT, 'modd-%s%s' %
+    output_file = os.path.join(DATASETS_ROOT, '%s%s' %
                                (split, '-segmentation' * segmentation))  # todo
 
     image_placeholder = tf.placeholder(dtype=tf.uint8)
@@ -268,7 +271,9 @@ def create_modd_dataset(split, segmentation=False, augmented_seg=False):
             path = '%sJPEGImages/%s.jpg' % (loader.root, f)
             with tf.gfile.FastGFile(path, 'rb') as ff:
                 image_data = ff.read()
+            #print(f)
             gt_bb, segmentation, gt_cats, w, h, diff = loader.read_annotations(f)
+            print(gt_cats)
             gt_bb = normalize_bboxes(gt_bb, w, h)
             png_string = sess.run(encoded_image,
                                   feed_dict={image_placeholder: segmentation})
@@ -283,7 +288,7 @@ def create_modd_dataset(split, segmentation=False, augmented_seg=False):
 
 
 if __name__ == '__main__':
-    create_voc_dataset('07', 'train')
+    #create_voc_dataset('07', 'train')
     # create_voc_dataset('07', 'test')
     # create_voc_dataset('07', 'trainval')
     # create_voc_dataset('12', 'train', True, True)
@@ -294,4 +299,4 @@ if __name__ == '__main__':
     # create_coco_dataset('minival2014')
     # create_coco_dataset('train2014')
 
-    create_modd_dataset('all')
+    create_modd_dataset('modd2_voc_dataset')

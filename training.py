@@ -324,10 +324,10 @@ def main(argv=None):  # pylint: disable=unused-argument
     if args.dataset == 'coco-seg':
         # support by default for coco trainval35k split
         dataset = get_dataset('coco-seg-train2014-*', 'coco-seg-valminusminival2014-*')
-    if args.dataset == 'modd1':
-        dataset = get_dataset('modd1')
-    if args.dataset == 'modd2-all':
-        dataset = get_dataset('modd2-all')
+    if args.dataset == 'modd1_voc_dataset':
+        dataset = get_dataset('modd1_voc_dataset')
+    if args.dataset == 'modd2_voc_dataset':
+        dataset = get_dataset('modd2_voc_dataset')
 
     train(dataset, net, net_config)
 

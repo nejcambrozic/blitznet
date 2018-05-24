@@ -20,6 +20,7 @@ from vgg import VGG
 from resnet import ResNet
 from voc_loader import VOCLoader
 from coco_loader import COCOLoader
+from modd_loader import MODDLoader
 from evaluation import Evaluation, COCOEval
 from detector import Detector
 
@@ -50,6 +51,8 @@ def main(argv=None):  # pylint: disable=unused-argument
         loader = VOCLoader('12', 'val', segmentation=args.segment)
     if args.dataset == 'coco':
         loader = COCOLoader(args.split)
+    else:
+        loader = MODDLoader('all')
 
     with tf.Session(config=tf.ConfigProto(allow_soft_placement=True,
                                           log_device_placement=False)) as sess:

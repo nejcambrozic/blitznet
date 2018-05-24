@@ -13,7 +13,9 @@ def check(dirname):
 EVAL_DIR = os.path.dirname(os.path.realpath(__file__))
 
 # Folder with datasets
-DATASETS_ROOT = check(os.path.join(EVAL_DIR, 'datasets'))
+IN_DATASETS_ROOT = check(os.path.join('/Users', 'nejc', 'github', 'msc', 'datasets/'))  #check(os.path.join(EVAL_DIR, 'datasets'))
+
+DATASETS_ROOT = check(os.path.join(EVAL_DIR, 'datasets/'))
 
 # Where the checkpoints are stored
 CKPT_ROOT = check(os.path.join(EVAL_DIR, 'archive/'))

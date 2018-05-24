@@ -20,7 +20,7 @@ parser.add_argument("--dataset", default='voc07', choices=['voc07', 'voc12-train
                                                            'voc12-trainval', 'voc07+12',
                                                            'coco', 'voc07+12-segfull',
                                                            'voc07+12-segmentation',
-                                                           'coco-seg', 'modd1', 'modd2-all'])
+                                                           'coco-seg', 'modd2_voc_dataset', 'modd2_voc_dataset'])
 
 # The split of the dataset you want to train/test on
 parser.add_argument("--split", default='train', choices=['train', 'test', 'val', 'trainval',

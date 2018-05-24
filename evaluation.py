@@ -37,7 +37,7 @@ class Evaluation(object):
         return self.compact_results(table, ckpt, iou)
 
     def compute_ap(self):
-        """computes average precision for all categories""" +
+        """computes average precision for all categories"""
         aps = {}
         for cid in range(1, self.loader.num_classes):
             cat_name = self.loader.ids_to_cats[cid]
